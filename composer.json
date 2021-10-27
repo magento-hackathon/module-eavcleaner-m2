@@ -1,18 +1,17 @@
 {
-  "name": "hackathon/magento2-eavcleaner",
-  "description": "Purpose of this project is to check for different flaws that can occur due to EAV and provide cleanup functions.",
-  "require": {
-    "php": "~7.1|~7.2|~7.3",
-    "magento/magento2-base": "~2.2|~2.3",
-    "magento/magento-composer-installer": "*"
-  },
-  "type": "magento2-module",
-  "autoload": {
-    "files": [
-      "registration.php"
-    ],
-    "psr-4": {
-      "Hackathon\\EAVCleaner\\": ""
+    "name": "magento-hackathon/module-eavcleaner-m2",
+    "description": "Purpose of this project is to check for different flaws that can occur due to EAV and provide cleanup functions.",
+    "require": {
+        "php": "~7.3||~8.0",
+        "magento/magento2-base": "~2.2"
+    },
+    "type": "magento2-module",
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Hackathon\\EAVCleaner\\": ""
+        }
     }
-  }
 }

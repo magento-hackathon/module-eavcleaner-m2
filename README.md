@@ -20,7 +20,7 @@ Run `bin/magento` in the Magento 2 root and look for the `eav:` commands.
 Installation with composer:
 
 ```bash
-composer require hackathon/magento2-eavcleaner
+composer require magento-hackathon/module-eavcleaner-m2
 ```
 
 
