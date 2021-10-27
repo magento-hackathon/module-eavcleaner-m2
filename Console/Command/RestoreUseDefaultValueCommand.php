@@ -2,7 +2,6 @@
 
 namespace Hackathon\EAVCleaner\Console\Command;
 
-use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\App\ResourceConnection;
 use Symfony\Component\Console\Command\Command;
@@ -18,10 +17,19 @@ class RestoreUseDefaultValueCommand extends Command
      */
     protected $productMetaData;
 
-    public function __construct(ProductMetaDataInterface $productMetaData, string $name = null)
-    {
+    /**
+     * @var ResourceConnection
+     */
+    private $resourceConnection;
+
+    public function __construct(
+        ProductMetaDataInterface $productMetaData,
+        ResourceConnection $resourceConnection,
+        string $name = null
+    ) {
         parent::__construct($name);
-        $this->productMetaData = $productMetaData;
+        $this->productMetaData    = $productMetaData;
+        $this->resourceConnection = $resourceConnection;
     }
 
     protected function configure()
@@ -60,14 +68,10 @@ class RestoreUseDefaultValueCommand extends Command
             }
         }
 
-        $objectManager = ObjectManager::getInstance();
-        /** @var ResourceConnection $db */
-        $resConnection = $objectManager->get(ResourceConnection::class);
-        $db            = $resConnection->getConnection();
-        $counts        = [];
-        $i             = 0;
-        $tables        = ['varchar', 'int', 'decimal', 'text', 'datetime'];
-        $column        = $this->productMetaData->getEdition() === 'Enterprise' ? 'row_id' : 'entity_id';
+        $db     = $this->resourceConnection->getConnection();
+        $counts = [];
+        $tables = ['varchar', 'int', 'decimal', 'text', 'datetime'];
+        $column = $this->productMetaData->getEdition() === 'Enterprise' ? 'row_id' : 'entity_id';
 
         foreach ($tables as $table) {
             // Select all non-global values
@@ -101,7 +105,6 @@ class RestoreUseDefaultValueCommand extends Command
                             $counts[$row['attribute_id']] = 0;
                         }
                         $counts[$row['attribute_id']]++;
-                        $i++;
                     }
                 }
 

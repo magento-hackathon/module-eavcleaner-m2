@@ -2,8 +2,11 @@
 
 namespace Hackathon\EAVCleaner\Console\Command;
 
-use Magento\Eav\Model\Entity\Type;
-use Magento\Framework\App\ObjectManager;
+use Magento\Catalog\Api\Data\CategoryAttributeInterface;
+use Magento\Catalog\Api\Data\ProductAttributeInterface;
+use Magento\Customer\Api\AddressMetadataInterface;
+use Magento\Customer\Api\CustomerMetadataInterface;
+use Magento\Eav\Model\ResourceModel\Entity\Type\CollectionFactory as EavEntityTypeCollectionFactory;
 use Magento\Framework\App\ResourceConnection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -12,6 +15,26 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class CleanUpAttributesAndValuesWithoutParentCommand extends Command
 {
+    /**
+     * @var ResourceConnection
+     */
+    private $resourceConnection;
+
+    /**
+     * @var EavEntityTypeCollectionFactory
+     */
+    private $eavEntityTypeCollectionFactory;
+
+    public function __construct(
+        ResourceConnection $resourceConnection,
+        EavEntityTypeCollectionFactory $eavEntityTypeCollectionFactory,
+        string $name = null
+    ) {
+        parent::__construct($name);
+        $this->resourceConnection             = $resourceConnection;
+        $this->eavEntityTypeCollectionFactory = $eavEntityTypeCollectionFactory;
+    }
+
     protected function configure()
     {
         $description
@@ -35,33 +58,31 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
             }
         }
 
-        $objectManager = ObjectManager::getInstance();
-        /** @var ResourceConnection $db */
-        $resConnection   = $objectManager->get(ResourceConnection::class);
-        $db              = $resConnection->getConnection();
+        $db              = $this->resourceConnection->getConnection();
         $types           = ['varchar', 'int', 'decimal', 'text', 'datetime'];
         $entityTypeCodes = [
-            $db->getTableName('catalog_product'),
-            $db->getTableName('catalog_category'),
-            $db->getTableName('customer'),
-            $db->getTableName('customer_address')
+            ProductAttributeInterface::ENTITY_TYPE_CODE,
+            CategoryAttributeInterface::ENTITY_TYPE_CODE,
+            CustomerMetadataInterface::ENTITY_TYPE_CUSTOMER,
+            AddressMetadataInterface::ENTITY_TYPE_ADDRESS
         ];
         foreach ($entityTypeCodes as $code) {
-            $entityType = $objectManager->get(Type::class)
-                ->getCollection()
-                ->addFieldToFilter('code', $code);
+            $entityType = $this->eavEntityTypeCollectionFactory
+                ->create()
+                ->addFieldToFilter('entity_type_code', $code)
+                ->getFirstItem();
             $output->writeln("<info>Cleaning values for $code</info>");
             foreach ($types as $type) {
                 $eavTable         = $db->getTableName('eav_attribute');
                 $entityValueTable = $db->getTableName($code . '_entity_' . $type);
-                $query            = "SELECT * FROM $entityValueTable WHERE `attribute_id` not in(SELECT attribute_id"
-                    . " FROM `$eavTable`)";
+                $query            = "SELECT * FROM $entityValueTable WHERE `attribute_id` NOT IN(SELECT attribute_id"
+                    . " FROM `$eavTable` WHERE entity_type_id = " . $entityType->getEntityTypeId() . ")";
                 $results          = $db->fetchAll($query);
                 $output->writeln("Clean up " . count($results) . " rows in $entityValueTable");
 
                 if (!$isDryRun && count($results) > 0) {
-                    $db->query("DELETE FROM $entityValueTable WHERE `attribute_id` not in(SELECT attribute_id"
-                        . " FROM `$eavTable` where entity_type_id = " . $entityType->getEntityTypeId() . ")");
+                    $db->query("DELETE FROM $entityValueTable WHERE `attribute_id` NOT IN(SELECT attribute_id"
+                        . " FROM `$eavTable` WHERE entity_type_id = " . $entityType->getEntityTypeId() . ")");
                 }
             }
         }

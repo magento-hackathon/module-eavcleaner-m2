@@ -24,11 +24,8 @@ class RemoveUnusedMediaCommand extends Command
      */
     protected $filesystem;
 
-    public function __construct(
-        Filesystem $filesystem,
-        ResourceConnection $resourceConnection,
-        string $name = null
-    ) {
+    public function __construct(Filesystem $filesystem, ResourceConnection $resourceConnection, string $name = null)
+    {
         parent::__construct($name);
         $this->resourceConnection = $resourceConnection;
         $this->filesystem         = $filesystem;
@@ -63,15 +60,11 @@ class RemoveUnusedMediaCommand extends Command
 
         $imageDir          = $this->getImageDir();
         $connection        = $this->resourceConnection->getConnection('core_read');
-        $mediaGalleryTable = $connection->getTableName(
-            'catalog_product_entity_media_gallery'
-        );
+        $mediaGalleryTable = $connection->getTableName('catalog_product_entity_media_gallery');
 
         $directoryIterator = new RecursiveDirectoryIterator($imageDir);
 
-        $imagesToKeep = $connection->fetchCol(
-            'SELECT value FROM ' . $mediaGalleryTable
-        );
+        $imagesToKeep = $connection->fetchCol('SELECT value FROM ' . $mediaGalleryTable);
 
         foreach (new RecursiveIteratorIterator($directoryIterator) as $file) {
             // Cached path guard
@@ -127,6 +120,6 @@ class RemoveUnusedMediaCommand extends Command
 
     private function isInCachePath(?string $file): bool
     {
-        return strpos($file, "/cache") !== false;
+        return strpos($file, '/cache') !== false;
     }
 }

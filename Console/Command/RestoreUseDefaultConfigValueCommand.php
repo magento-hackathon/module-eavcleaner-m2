@@ -2,7 +2,6 @@
 
 namespace Hackathon\EAVCleaner\Console\Command;
 
-use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\ResourceConnection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,6 +10,17 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class RestoreUseDefaultConfigValueCommand extends Command
 {
+    /**
+     * @var ResourceConnection
+     */
+    private $resourceConnection;
+
+    public function __construct(ResourceConnection $resourceConnection, string $name = null)
+    {
+        parent::__construct($name);
+        $this->resourceConnection = $resourceConnection;
+    }
+
     protected function configure()
     {
         $description = "Restore config's 'Use Default Value' if the non-global value is the same as the global value";
@@ -35,11 +45,8 @@ class RestoreUseDefaultConfigValueCommand extends Command
 
         $removedConfigValues = 0;
 
-        $objectManager = ObjectManager::getInstance();
-        /** @var ResourceConnection $db */
-        $resConnection = $objectManager->get(ResourceConnection::class);
-        $db            = $resConnection->getConnection();
-        $configData    = $db->fetchAll('SELECT DISTINCT path, value FROM ' . $db->getTableName('core_config_data')
+        $db         = $this->resourceConnection->getConnection();
+        $configData = $db->fetchAll('SELECT DISTINCT path, value FROM ' . $db->getTableName('core_config_data')
             . ' WHERE scope_id = 0');
         foreach ($configData as $config) {
             $count = $db->fetchOne('SELECT COUNT(*) FROM ' . $db->getTableName('core_config_data')
