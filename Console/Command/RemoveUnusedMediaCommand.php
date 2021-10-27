@@ -2,25 +2,23 @@
 
 namespace Hackathon\EAVCleaner\Console\Command;
 
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Filesystem;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Symfony\Component\Console\Input\InputOption;
-use Magento\Framework\App\Filesystem\DirectoryList;
 
-/**
- * Class RemoveUnusedMediaCommand
- * @package Hackathon\EAVCleaner\Console\Command
- */
 class RemoveUnusedMediaCommand extends Command
 {
     /**
      * @var ResourceConnection
      */
     protected $resourceConnection;
+
     /**
      * @var Filesystem
      */
@@ -33,7 +31,7 @@ class RemoveUnusedMediaCommand extends Command
     ) {
         parent::__construct($name);
         $this->resourceConnection = $resourceConnection;
-        $this->filesystem = $filesystem;
+        $this->filesystem         = $filesystem;
     }
 
     /**
@@ -47,11 +45,11 @@ class RemoveUnusedMediaCommand extends Command
             ->addOption('dry-run');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output) : void
+    public function execute(InputInterface $input, OutputInterface $output): void
     {
-        $fileSize = 0;
+        $fileSize   = 0;
         $countFiles = 0;
-        $isDryRun = $input->getOption('dry-run');
+        $isDryRun   = $input->getOption('dry-run');
 
         if (!$isDryRun && $input->isInteractive()) {
             $output->writeln(
@@ -63,20 +61,19 @@ class RemoveUnusedMediaCommand extends Command
             }
         }
 
-        $imageDir = $this->getImageDir();
-        $connection = $this->resourceConnection->getConnection('core_read');
+        $imageDir          = $this->getImageDir();
+        $connection        = $this->resourceConnection->getConnection('core_read');
         $mediaGalleryTable = $connection->getTableName(
             'catalog_product_entity_media_gallery'
         );
 
-        $directoryIterator = new \RecursiveDirectoryIterator($imageDir);
-        
+        $directoryIterator = new RecursiveDirectoryIterator($imageDir);
+
         $imagesToKeep = $connection->fetchCol(
             'SELECT value FROM ' . $mediaGalleryTable
         );
 
-        foreach (new \RecursiveIteratorIterator($directoryIterator) as $file) {
-
+        foreach (new RecursiveIteratorIterator($directoryIterator) as $file) {
             // Cached path guard
             if ($this->isInCachePath($file)) {
                 continue;
@@ -124,9 +121,9 @@ class RemoveUnusedMediaCommand extends Command
     private function getImageDir(): string
     {
         $directory = $this->filesystem->getDirectoryRead(DirectoryList::MEDIA);
+
         return $directory->getAbsolutePath() . DIRECTORY_SEPARATOR . 'catalog' . DIRECTORY_SEPARATOR . 'product';
     }
-
 
     private function isInCachePath(?string $file): bool
     {
