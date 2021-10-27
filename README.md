@@ -2,8 +2,9 @@
 
 Purpose of this project is to check for different flaws that can occur due to EAV and provide cleanup functions.
 
-## Dry run
-Use --dry-run to check result without modifying data.
+## Usage
+
+Run `bin/magento` in the Magento 2 root and look for the `eav:` commands.
 
 ## Commands
 
@@ -12,9 +13,8 @@ Use --dry-run to check result without modifying data.
 * `eav:attributes:remove-unused` Remove attributes with no values set in products and attributes that are not present in any attribute sets.
 * `eav:media:remove-unused` Remove unused product images.
 
-## Usage
-
-Run `bin/magento` in the Magento 2 root and look for the `eav:` commands.
+## Dry run
+Use `--dry-run` to check result without modifying data.
 
 ## Installation
 Installation with composer:
