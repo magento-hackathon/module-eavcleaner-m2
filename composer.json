@@ -5,6 +5,7 @@
         "php": "~7.3||~8.0",
         "magento/magento2-base": "~2.3"
     },
+    "license": "MIT",
     "type": "magento2-module",
     "autoload": {
         "files": [
