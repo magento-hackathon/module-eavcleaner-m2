@@ -63,6 +63,7 @@ class RemoveUnusedAttributesCommand extends Command
         $deleted                 = 0;
         $searchCriteria          = $this->searchCriteriaBuilderFactory->create()
             ->addFilter('is_user_defined', 1)
+            ->addFilter('backend_type', 'static', 'neq')
             ->create();
         $attributes              = $this->attributeRepository
             ->getList(ProductAttributeInterface::ENTITY_TYPE_CODE, $searchCriteria)
