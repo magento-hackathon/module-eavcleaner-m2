@@ -67,8 +67,8 @@ class RemoveUnusedMediaCommand extends Command
         $imagesToKeep = $connection->fetchCol('SELECT value FROM ' . $mediaGalleryTable);
 
         foreach (new RecursiveIteratorIterator($directoryIterator) as $file) {
-            // Cached path guard
-            if ($this->isInCachePath($file)) {
+            // Cached and placeholder path guard
+            if ($this->isInCachePath($file) || $this->isInPlaceholderPath($file)) {
                 continue;
             }
 
@@ -121,5 +121,10 @@ class RemoveUnusedMediaCommand extends Command
     private function isInCachePath(?string $file): bool
     {
         return strpos($file, '/cache') !== false;
+    }
+
+    private function isInPlaceholderPath(?string $file): bool
+    {
+        return strpos($file, '/placeholder') !== false;
     }
 }
