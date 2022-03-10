@@ -2,6 +2,7 @@
 
 namespace Hackathon\EAVCleaner\Console\Command;
 
+use Magento\Framework\App\Config\Initial\Reader;
 use Magento\Framework\App\ResourceConnection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -10,14 +11,25 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 class RestoreUseDefaultConfigValueCommand extends Command
 {
+    /** @var Reader */
+    private $configReader;
+
     /**
      * @var ResourceConnection
      */
     private $resourceConnection;
 
-    public function __construct(ResourceConnection $resourceConnection, string $name = null)
-    {
+    /** @var array */
+    private $systemConfig;
+
+    public function __construct(
+        Reader $configReader,
+        ResourceConnection $resourceConnection,
+        string $name = null
+    ) {
         parent::__construct($name);
+
+        $this->configReader = $configReader;
         $this->resourceConnection = $resourceConnection;
     }
 
@@ -63,7 +75,50 @@ class RestoreUseDefaultConfigValueCommand extends Command
                 }
                 $removedConfigValues += ($count - 1);
             }
+
+            if ($config['value'] === $this->getSystemValue($config['path'])) {
+                $output->writeln("Config path {$config['path']} with value {$config['value']} matches system default; deleting value");
+
+                if (!$isDryRun) {
+                    if ($config['value'] === null) {
+                        $db->query(
+                            "DELETE FROM $tableName WHERE path = ? AND value IS NULL AND scope_id = 0",
+                            [$config['path']]
+                        );
+                    } else {
+                        $db->query(
+                            "DELETE FROM $tableName WHERE path = ? AND BINARY value = ? AND scope_id = 0",
+                            [$config['path'], $config['value']]
+                        );
+                    }
+                }
+
+                $removedConfigValues++;
+            }
         }
+
         $output->writeln('Removed ' . $removedConfigValues . ' values from core_config_data table.');
+    }
+
+    /**
+     * Retrieve the system value for a given configuration path
+     *
+     * @param string $path
+     * @return mixed
+     */
+    private function getSystemValue(string $path)
+    {
+        if (!isset($this->systemConfig)) {
+            $this->systemConfig = $this->configReader->read()['data']['default'];
+        }
+
+        $pathParts = explode('/', $path);
+        $value = $this->systemConfig;
+
+        while (!empty($pathParts)) {
+            $value = $value[array_shift($pathParts)] ?? null;
+        }
+
+        return $value;
     }
 }
