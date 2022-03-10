@@ -68,10 +68,10 @@ class RemoveUnusedAttributesCommand extends Command
         $attributes              = $this->attributeRepository
             ->getList(ProductAttributeInterface::ENTITY_TYPE_CODE, $searchCriteria)
             ->getItems();
-        $eavAttributeTable       = $db->getTableName('eav_attribute');
-        $eavEntityAttributeTable = $db->getTableName('eav_entity_attribute');
+        $eavAttributeTable       = $this->resourceConnection->getTableName('eav_attribute');
+        $eavEntityAttributeTable = $this->resourceConnection->getTableName('eav_entity_attribute');
         foreach ($attributes as $attribute) {
-            $table = $db->getTableName('catalog_product_entity_' . $attribute->getBackendType());
+            $table = $this->resourceConnection->getTableName('catalog_product_entity_' . $attribute->getBackendType());
             /* Look for attributes that have no values set in products */
             $attributeValues = (int)$db->fetchOne('SELECT COUNT(*) FROM ' . $table . ' WHERE attribute_id = ?',
                 [$attribute->getAttributeId()]);

@@ -73,8 +73,8 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
                 ->getFirstItem();
             $output->writeln("<info>Cleaning values for $code</info>");
             foreach ($types as $type) {
-                $eavTable         = $db->getTableName('eav_attribute');
-                $entityValueTable = $db->getTableName($code . '_entity_' . $type);
+                $eavTable         = $this->resourceConnection->getTableName('eav_attribute');
+                $entityValueTable = $this->resourceConnection->getTableName($code . '_entity_' . $type);
                 $query            = "SELECT * FROM $entityValueTable WHERE `attribute_id` NOT IN(SELECT attribute_id"
                     . " FROM `$eavTable` WHERE entity_type_id = " . $entityType->getEntityTypeId() . ")";
                 $results          = $db->fetchAll($query);
