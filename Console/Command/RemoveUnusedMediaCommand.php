@@ -60,7 +60,7 @@ class RemoveUnusedMediaCommand extends Command
 
         $imageDir          = $this->getImageDir();
         $connection        = $this->resourceConnection->getConnection('core_read');
-        $mediaGalleryTable = $connection->getTableName('catalog_product_entity_media_gallery');
+        $mediaGalleryTable = $this->resourceConnection->getTableName('catalog_product_entity_media_gallery');
 
         $directoryIterator = new RecursiveDirectoryIterator($imageDir);
 
