@@ -38,7 +38,7 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
     protected function configure()
     {
         $description
-            = 'Remove catalog_eav_attribute and attribute values which are missing parent entry in eav_attribute';
+            = 'Remove orphaned attribute values - those which are missing a parent entry (with the corresponding backend_type) in eav_attribute';
         $this
             ->setName('eav:clean:attributes-and-values-without-parent')
             ->setDescription($description)
