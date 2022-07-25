@@ -42,19 +42,27 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
         $this
             ->setName('eav:clean:attributes-and-values-without-parent')
             ->setDescription($description)
-            ->addOption('dry-run');
+            ->addOption('dry-run')
+            ->addOption('force');
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
         $isDryRun = $input->getOption('dry-run');
+        $isForce = $input->getOption('force');
 
-        if (!$isDryRun && $input->isInteractive()) {
+        if (!$isDryRun && !$isForce) {
+            if (!$input->isInteractive()) {
+                $output->writeln('ERROR: neither --dry-run nor --force options were supplied, and we are not running interactively.');
+
+                return 1; // error.
+            }
+
             $output->writeln('WARNING: this is not a dry run. If you want to do a dry-run, add --dry-run.');
             $question = new ConfirmationQuestion('Are you sure you want to continue? [No] ', false);
 
             if (!$this->getHelper('question')->ask($input, $output, $question)) {
-                return;
+                return 1; // error.
             }
         }
 
@@ -66,12 +74,14 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
             CustomerMetadataInterface::ENTITY_TYPE_CUSTOMER,
             AddressMetadataInterface::ENTITY_TYPE_ADDRESS
         ];
+
         foreach ($entityTypeCodes as $code) {
             $entityType = $this->eavEntityTypeCollectionFactory
                 ->create()
                 ->addFieldToFilter('entity_type_code', $code)
                 ->getFirstItem();
             $output->writeln("<info>Cleaning values for $code</info>");
+
             foreach ($types as $type) {
                 $eavTable         = $this->resourceConnection->getTableName('eav_attribute');
                 $entityValueTable = $this->resourceConnection->getTableName($code . '_entity_' . $type);
@@ -86,5 +96,7 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
                 }
             }
         }
+
+        return 0; // success.
     }
 }

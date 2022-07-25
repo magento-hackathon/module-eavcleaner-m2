@@ -39,19 +39,27 @@ class RestoreUseDefaultConfigValueCommand extends Command
         $this
             ->setName('eav:config:restore-use-default-value')
             ->setDescription($description)
-            ->addOption('dry-run');
+            ->addOption('dry-run')
+            ->addOption('force');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $isDryRun = $input->getOption('dry-run');
+        $isForce = $input->getOption('force');
 
-        if (!$isDryRun && $input->isInteractive()) {
+        if (!$isDryRun && !$isForce) {
+            if (!$input->isInteractive()) {
+                $output->writeln('ERROR: neither --dry-run nor --force options were supplied, and we are not running interactively.');
+
+                return 1; // error.
+            }
+
             $output->writeln('WARNING: this is not a dry run. If you want to do a dry-run, add --dry-run.');
             $question = new ConfirmationQuestion('Are you sure you want to continue? [No] ', false);
 
             if (!$this->getHelper('question')->ask($input, $output, $question)) {
-                return;
+                return 1; // error.
             }
         }
 
@@ -61,18 +69,22 @@ class RestoreUseDefaultConfigValueCommand extends Command
         $tableName = $this->resourceConnection->getTableName('core_config_data');
         $configData = $db->fetchAll('SELECT DISTINCT path, value FROM ' . $tableName
             . ' WHERE scope_id = 0');
+
         foreach ($configData as $config) {
             $count = $db->fetchOne('SELECT COUNT(*) FROM ' . $tableName
                 . ' WHERE path = ? AND BINARY value = ?', [$config['path'], $config['value']]);
+
             if ($count > 1) {
                 $output->writeln('Config path ' . $config['path'] . ' with value ' . $config['value'] . ' has ' . $count
                     . ' values; deleting non-default values');
+
                 if (!$isDryRun) {
                     $db->query(
                         'DELETE FROM ' . $tableName . ' WHERE path = ? AND BINARY value = ? AND scope_id != ?',
                         [$config['path'], $config['value'], 0]
                     );
                 }
+
                 $removedConfigValues += ($count - 1);
             }
 
@@ -98,6 +110,8 @@ class RestoreUseDefaultConfigValueCommand extends Command
         }
 
         $output->writeln('Removed ' . $removedConfigValues . ' values from core_config_data table.');
+
+        return 0; // success.
     }
 
     /**

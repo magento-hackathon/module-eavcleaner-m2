@@ -17,6 +17,9 @@ Run `bin/magento` in the Magento 2 root and look for the `eav:` commands.
 ## Dry run
 Use `--dry-run` to check result without modifying data.
 
+## Force
+Use `--force` to skip the confirmation prompt before modifying data.
+
 ## Installation
 Installation with composer:
 

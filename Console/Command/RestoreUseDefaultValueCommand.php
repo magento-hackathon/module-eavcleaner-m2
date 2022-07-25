@@ -39,6 +39,7 @@ class RestoreUseDefaultValueCommand extends Command
             ->setName('eav:attributes:restore-use-default-value')
             ->setDescription($description)
             ->addOption('dry-run')
+            ->addOption('force')
             ->addOption(
                 'entity',
                 null,
@@ -48,23 +49,30 @@ class RestoreUseDefaultValueCommand extends Command
             );
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $isDryRun = $input->getOption('dry-run');
+        $isForce  = $input->getOption('force');
         $entity   = $input->getOption('entity');
 
         if (!in_array($entity, ['product', 'category'])) {
             $output->writeln('Please specify the entity with --entity. Possible options are product or category');
 
-            return;
+            return 1;
         }
 
-        if (!$isDryRun && $input->isInteractive()) {
+        if (!$isDryRun && !$isForce) {
+            if (!$input->isInteractive()) {
+                $output->writeln('ERROR: neither --dry-run nor --force options were supplied, and we are not running interactively.');
+
+                return 1; // error.
+            }
+
             $output->writeln('WARNING: this is not a dry run. If you want to do a dry-run, add --dry-run.');
             $question = new ConfirmationQuestion('Are you sure you want to continue? [No] ', false);
 
             if (!$this->getHelper('question')->ask($input, $output, $question)) {
-                return;
+                return 1; // error.
             }
         }
 
@@ -101,9 +109,11 @@ class RestoreUseDefaultValueCommand extends Command
                             . $result['value_id']
                             . ' for attribute ' . $row['attribute_id'] . ' in table ' . $fullTableName
                         );
+
                         if (!isset($counts[$row['attribute_id']])) {
                             $counts[$row['attribute_id']] = 0;
                         }
+
                         $counts[$row['attribute_id']]++;
                     }
                 }
@@ -127,5 +137,7 @@ class RestoreUseDefaultValueCommand extends Command
                 $output->writeln('There were no attribute values to clean up');
             }
         }
+
+        return 0; // success.
     }
 }
