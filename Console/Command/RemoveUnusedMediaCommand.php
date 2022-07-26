@@ -39,22 +39,31 @@ class RemoveUnusedMediaCommand extends Command
         $this
             ->setName('eav:media:remove-unused')
             ->setDescription('Remove unused product images')
-            ->addOption('dry-run');
+            ->addOption('dry-run')
+            ->addOption('force');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output): void
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $fileSize   = 0;
         $countFiles = 0;
         $isDryRun   = $input->getOption('dry-run');
+        $isForce    = $input->getOption('force');
 
-        if (!$isDryRun && $input->isInteractive()) {
+        if (!$isDryRun && !$isForce) {
+            if (!$input->isInteractive()) {
+                $output->writeln('ERROR: neither --dry-run nor --force options were supplied, and we are not running interactively.');
+
+                return 1; // error.
+            }
+
             $output->writeln(
                 '<comment>WARNING: this is not a dry run. If you want to do a dry-run, add --dry-run.</comment>'
             );
             $question = new ConfirmationQuestion('<comment>Are you sure you want to continue? [No]</comment>', false);
+
             if (!$this->getHelper('question')->ask($input, $output, $question)) {
-                return;
+                return 1; // error.
             }
         }
 
@@ -89,6 +98,7 @@ class RemoveUnusedMediaCommand extends Command
 
             $fileSize += filesize($file);
             $countFiles++;
+
             if (!$isDryRun) {
                 unlink($file);
                 $output->writeln('## REMOVING: ' . $filePath . ' ##');
@@ -98,14 +108,18 @@ class RemoveUnusedMediaCommand extends Command
         }
 
         $this->printResult($output, $isDryRun, $countFiles, $fileSize);
+
+        return 0; // success.
     }
 
     private function printResult(OutputInterface $output, $isDryRun, int $countFiles, int $filesize): void
     {
         $actionName = 'Deleted';
+
         if ($isDryRun) {
             $actionName = 'Would delete';
         }
+
         $fileSizeInMB = number_format($filesize / 1024 / 1024, '2');
 
         $output->writeln("<info>{$actionName} {$countFiles} unused images. {$fileSizeInMB} MB</info>");
