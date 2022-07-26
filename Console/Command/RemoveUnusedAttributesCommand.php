@@ -49,7 +49,7 @@ class RemoveUnusedAttributesCommand extends Command
             ->addOption('force');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $isDryRun = $input->getOption('dry-run');
         $isForce = $input->getOption('force');
