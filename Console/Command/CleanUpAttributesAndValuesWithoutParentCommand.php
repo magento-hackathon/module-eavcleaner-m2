@@ -85,12 +85,12 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
             foreach ($types as $type) {
                 $eavTable         = $this->resourceConnection->getTableName('eav_attribute');
                 $entityValueTable = $this->resourceConnection->getTableName($code . '_entity_' . $type);
-                $query            = "SELECT * FROM $entityValueTable WHERE `attribute_id` NOT IN(SELECT attribute_id"
+                $query = "SELECT COUNT(*) FROM $entityValueTable WHERE `attribute_id` NOT IN(SELECT attribute_id"
                     . " FROM `$eavTable` WHERE entity_type_id = " . $entityType->getEntityTypeId() . " AND backend_type = '$type')";
-                $results          = $db->fetchAll($query);
-                $output->writeln("Clean up " . count($results) . " rows in $entityValueTable");
+                $count = (int) $db->fetchOne($query);
+                $output->writeln("Clean up $count rows in $entityValueTable");
 
-                if (!$isDryRun && count($results) > 0) {
+                if (!$isDryRun && $count > 0) {
                     $db->query("DELETE FROM $entityValueTable WHERE `attribute_id` NOT IN(SELECT attribute_id"
                         . " FROM `$eavTable` WHERE entity_type_id = " . $entityType->getEntityTypeId() . " AND backend_type = '$type')");
                 }

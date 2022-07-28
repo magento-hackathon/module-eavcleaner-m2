@@ -4,6 +4,7 @@ namespace Hackathon\EAVCleaner\Console\Command;
 
 use Magento\Framework\App\Config\Initial\Reader;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Model\ResourceModel\IteratorFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -13,6 +14,9 @@ class RestoreUseDefaultConfigValueCommand extends Command
 {
     /** @var Reader */
     private $configReader;
+
+    /** @var IteratorFactory */
+    private $iteratorFactory;
 
     /**
      * @var ResourceConnection
@@ -24,12 +28,14 @@ class RestoreUseDefaultConfigValueCommand extends Command
 
     public function __construct(
         Reader $configReader,
+        IteratorFactory $iteratorFactory,
         ResourceConnection $resourceConnection,
         string $name = null
     ) {
         parent::__construct($name);
 
         $this->configReader = $configReader;
+        $this->iteratorFactory = $iteratorFactory;
         $this->resourceConnection = $resourceConnection;
     }
 
@@ -65,13 +71,17 @@ class RestoreUseDefaultConfigValueCommand extends Command
 
         $removedConfigValues = 0;
 
-        $db         = $this->resourceConnection->getConnection();
+        $dbRead = $this->resourceConnection->getConnection('core_read');
+        $dbWrite = $this->resourceConnection->getConnection('core_write');
         $tableName = $this->resourceConnection->getTableName('core_config_data');
-        $configData = $db->fetchAll('SELECT DISTINCT path, value FROM ' . $tableName
-            . ' WHERE scope_id = 0');
 
-        foreach ($configData as $config) {
-            $count = $db->fetchOne('SELECT COUNT(*) FROM ' . $tableName
+        $query = $dbRead->query("SELECT DISTINCT path, value FROM $tableName WHERE scope_id = 0");
+
+        $iterator = $this->iteratorFactory->create();
+        $iterator->walk($query, [function (array $result) use ($dbRead, $dbWrite, $isDryRun, $output, &$removedConfigValues, $tableName): void {
+            $config = $result['row'];
+
+            $count = (int) $dbRead->fetchOne('SELECT COUNT(*) FROM ' . $tableName
                 . ' WHERE path = ? AND BINARY value = ?', [$config['path'], $config['value']]);
 
             if ($count > 1) {
@@ -79,7 +89,7 @@ class RestoreUseDefaultConfigValueCommand extends Command
                     . ' values; deleting non-default values');
 
                 if (!$isDryRun) {
-                    $db->query(
+                    $dbWrite->query(
                         'DELETE FROM ' . $tableName . ' WHERE path = ? AND BINARY value = ? AND scope_id != ?',
                         [$config['path'], $config['value'], 0]
                     );
@@ -93,12 +103,12 @@ class RestoreUseDefaultConfigValueCommand extends Command
 
                 if (!$isDryRun) {
                     if ($config['value'] === null) {
-                        $db->query(
+                        $dbWrite->query(
                             "DELETE FROM $tableName WHERE path = ? AND value IS NULL AND scope_id = 0",
                             [$config['path']]
                         );
                     } else {
-                        $db->query(
+                        $dbWrite->query(
                             "DELETE FROM $tableName WHERE path = ? AND BINARY value = ? AND scope_id = 0",
                             [$config['path'], $config['value']]
                         );
@@ -107,7 +117,7 @@ class RestoreUseDefaultConfigValueCommand extends Command
 
                 $removedConfigValues++;
             }
-        }
+        }]);
 
         $output->writeln('Removed ' . $removedConfigValues . ' values from core_config_data table.');
 
