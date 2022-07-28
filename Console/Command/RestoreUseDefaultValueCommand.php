@@ -92,7 +92,9 @@ class RestoreUseDefaultValueCommand extends Command
         foreach ($tables as $table) {
             // Select all non-global values
             $fullTableName = $this->resourceConnection->getTableName('catalog_' . $entity . '_entity_' . $table);
-            $query = $dbRead->query("SELECT * FROM $fullTableName WHERE store_id != 0");
+
+            // NULL values are handled separately
+            $query = $dbRead->query("SELECT * FROM $fullTableName WHERE store_id != 0 AND value IS NOT NULL");
 
             $iterator = $this->iteratorFactory->create();
             $iterator->walk($query, [function (array $result) use ($column, &$counts, $dbRead, $dbWrite, $fullTableName, $isDryRun, $output): void {
