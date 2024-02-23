@@ -14,5 +14,16 @@
         "psr-4": {
             "Hackathon\\EAVCleaner\\": ""
         }
+    },
+    "repositories": {
+        "magento": {
+            "type": "composer",
+            "url": "https://repo.magento.com/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "magento/magento-composer-installer": false
+        }
     }
 }
