@@ -13,12 +13,27 @@ Run `bin/magento` in the Magento 2 root and look for the `eav:` commands.
 * `eav:attributes:remove-unused` Remove attributes with no values set in products and attributes that are not present in any attribute sets.
 * `eav:media:remove-unused` Remove unused product images.
 * `eav:clean:attributes-and-values-without-parent` Remove orphaned attribute values - those which are missing a parent entry (with the corresponding `backend_type`) in `eav_attribute`.
+* `eav:attributes:remove-scoped-attribute-value` "Restore product's 'Use Default Value' for given stores.
 
 ## Dry run
 Use `--dry-run` to check result without modifying data.
 
 ## Force
 Use `--force` to skip the confirmation prompt before modifying data.
+
+## Additional options for `eav:attributes:restore-use-default-value`
+
+### Always remove (restore-use-default-value only)
+Use `--always_remove` to remove all values, even if the scoped value is not equal to the base value.
+
+### Store codes
+Use `--store_codes=your_store_code` to only remove values for this store.
+
+### Include attributes
+Use `--include_attributes=some_attribute,some_other_attribute` to only delete values for these attributes.
+
+### Exclude attributes
+Use `--exclude_attributes=some_attribute,some_other_attribute` to preserve values for these attributes.
 
 ## Installation
 Installation with composer:
@@ -31,6 +46,7 @@ composer require magento-hackathon/module-eavcleaner-m2
 - Nikita Zhavoronkova
 - Anastasiia Sukhorukova
 - Peter Jaap Blaakmeer
+- Rutger Rademaker
 
 ### Special thanks to
 - Benno Lippert

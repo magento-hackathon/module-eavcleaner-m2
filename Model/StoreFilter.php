@@ -2,13 +2,24 @@
 
 namespace Hackathon\EAVCleaner\Model;
 
+use Magento\Store\Api\StoreRepositoryInterface;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 
-class StoreCodeFilter
+class StoreFilter
 {
-    public function getStoreFilter($storeCodes) : ?array
+    /**
+     * @var StoreRepositoryInterface
+     */
+    private $storeRepository;
+
+    public function __construct(StoreRepositoryInterface $storeRepository)
     {
-        $storeIdFilter = "";
+        $this->storeRepository = $storeRepository;
+    }
+
+    public function getStoreFilter(OutputInterface $output, ?string $storeCodes) : ?string
+    {
         if ($storeCodes !== NULL) {
             $storeCodesArray = explode(',', $storeCodes);
 
@@ -16,19 +27,21 @@ class StoreCodeFilter
             foreach ($storeCodesArray as $storeCode) {
                 if ($storeCode == 'admin') {
                     $output->writeln('<error>Admin values can not be removed!</error>');
-                    return Command::INVALID;
+                    return NULL;
                 }
 
                 try {
                     $storeId = $this->storeRepository->get($storeCode)->getId();
                 } catch (\Exception $e) {
                     $output->writeln('<error>' . $e->getMessage() . ' : ' . $storeCode . '</error>');
-                    return Command::INVALID;
+                    return NULL;
                 }
                 $storeIds[] = $storeId;
             }
 
-            $storeIdFilter = sprintf('AND store_id in(%s)', implode($storeIds));
+            return sprintf('AND store_id in(%s)', implode($storeIds));
+        } else {
+            return "";
         }
     }
 }
