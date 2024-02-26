@@ -69,7 +69,7 @@ class AttributeFilter
         foreach ($attributes as $attributeCode) {
             $attributeId=$this->attribute->getIdByCode("catalog_".$entityType, $attributeCode);
             if($attributeId === false) {
-                $error = sprintf('Attribute with code `%s` does not exis', $attributeCode);
+                $error = sprintf('Attribute with code `%s` does not exist', $attributeCode);
                 throw new AttributeDoesNotExistException($error);
             } else {
                 $attributeIds[]=$attributeId;

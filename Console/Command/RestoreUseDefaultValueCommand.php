@@ -148,13 +148,13 @@ class RestoreUseDefaultValueCommand extends Command
             $output->writeln(sprintf('<info>Now processing entity `%s` in table `%s`</info>', $entity, $fullTableName ));
 
             // NULL values are handled separately
-            $nullValuesQuery=sprintf(
+            $notNullValuesQuery=sprintf(
                 "SELECT * FROM $fullTableName WHERE store_id != 0 %s %s AND value IS NOT NULL",
                 $storeIdFilter,
                 $attributeFilter
             );
-            $output->writeln(sprintf('<info>%s</info>', $nullValuesQuery));
-            $query = $dbRead->query($nullValuesQuery);
+            $output->writeln(sprintf('<info>%s</info>', $notNullValuesQuery));
+            $query = $dbRead->query($notNullValuesQuery);
 
             $iterator = $this->iteratorFactory->create();
             $iterator->walk($query, [function (array $result) use ($column, &$counts, $dbRead, $dbWrite, $fullTableName, $isDryRun, $output, $isAlwaysRestore): void {
@@ -190,7 +190,7 @@ class RestoreUseDefaultValueCommand extends Command
 
                     $output->writeln(
                         sprintf(
-                            'Deleting value %s (%s) in favor of %s (%s) for attribute %s for store_id %s',
+                            'Deleting value %s (%s) in favor of %s (%s) for attribute %s for store id %s',
                             $row['value_id'],
                             $row['value'],
                             $result['value_id'] ,
