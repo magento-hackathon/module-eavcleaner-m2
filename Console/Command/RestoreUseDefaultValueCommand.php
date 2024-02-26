@@ -33,6 +33,7 @@ class RestoreUseDefaultValueCommand extends Command
      * @var string
      */
     private $storeFilter;
+
     /**
      * @var AttributeFilter
      */
@@ -74,19 +75,19 @@ class RestoreUseDefaultValueCommand extends Command
                 'store_codes',
                 null,
                 InputArgument::IS_ARRAY,
-                "Store codes from which attribute values should be removed (csv)",
+                'Store codes from which attribute values should be removed (csv)',
             )
             ->addOption(
                 'exclude_attributes',
                 null,
                 InputArgument::IS_ARRAY,
-                "Attribute codes from which values should be preserved (csv)",
+                'Attribute codes from which values should be preserved (csv)',
             )
             ->addOption(
                 'include_attributes',
                 null,
                 InputArgument::IS_ARRAY,
-                "Attribute codes from which values should be removed (csv)",
+                'Attribute codes from which values should be removed (csv)',
             )
             ->addOption('always_restore');
     }
@@ -102,7 +103,7 @@ class RestoreUseDefaultValueCommand extends Command
         $isAlwaysRestore = $input->getOption('always_restore');
 
         try {
-            $storeIdFilter=$this->storeFilter->getStoreFilter($storeCodes);
+            $storeIdFilter = $this->storeFilter->getStoreFilter($storeCodes);
         } catch (Exception $e) {
             $output->writeln($e->getMessage());
             return Command::FAILURE;
@@ -115,7 +116,7 @@ class RestoreUseDefaultValueCommand extends Command
         }
 
         try {
-            $attributeFilter=$this->attributeFilter->getAttributeFilter($entity, $excludeAttributes, $includeAttributes);
+            $attributeFilter = $this->attributeFilter->getAttributeFilter($entity, $excludeAttributes, $includeAttributes);
         } catch (Exception $e) {
             $output->writeln($e->getMessage());
             return Command::FAILURE;
@@ -145,7 +146,7 @@ class RestoreUseDefaultValueCommand extends Command
         foreach ($tables as $table) {
             // Select all non-global values
             $fullTableName = $this->resourceConnection->getTableName('catalog_' . $entity . '_entity_' . $table);
-            $output->writeln(sprintf('<info>Now processing entity `%s` in table `%s`</info>', $entity, $fullTableName ));
+            $output->writeln(sprintf('<info>Now processing entity `%s` in table `%s`</info>', $entity, $fullTableName));
 
             // NULL values are handled separately
             $notNullValuesQuery=sprintf(

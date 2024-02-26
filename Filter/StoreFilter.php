@@ -26,7 +26,7 @@ class StoreFilter
      */
     public function getStoreFilter(?string $storeCodes) : string
     {
-        if ($storeCodes !== NULL) {
+        if ($storeCodes !== null) {
             $storeCodesArray = explode(',', $storeCodes);
 
             $storeIds=[];
@@ -48,7 +48,7 @@ class StoreFilter
 
             return sprintf('AND store_id in(%s)', implode(',', $storeIds));
         } else {
-            return "";
+            return '';
         }
     }
 }

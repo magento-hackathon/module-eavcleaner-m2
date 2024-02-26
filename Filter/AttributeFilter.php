@@ -35,19 +35,19 @@ class AttributeFilter
         ?string         $includeAttributes
     ) : string
     {
-        $attributeFilter="";
+        $attributeFilter = '';
 
-        if ($includeAttributes !== NULL) {
+        if ($includeAttributes !== null) {
             $includedIds = $this->getAttributeIds($entityType, $includeAttributes);
             if (!empty($includedIds)) {
-                $attributeFilter .=  sprintf('AND attribute_id IN(%s)', implode(",",$includedIds));
+                $attributeFilter .=  sprintf('AND attribute_id IN(%s)', implode(',', $includedIds));
             }
         }
 
-        if ($excludeAttributes !== NULL) {
+        if ($excludeAttributes !== null) {
             $excludedIds = $this->getAttributeIds($entityType, $excludeAttributes);
             if (!empty($excludedIds)) {
-                $attributeFilter .=  sprintf('AND attribute_id NOT IN(%s)',  implode(",",$excludedIds));
+                $attributeFilter .=  sprintf('AND attribute_id NOT IN(%s)',  implode(',', $excludedIds));
             }
         }
 
@@ -57,14 +57,14 @@ class AttributeFilter
     private function getAttributeIds(string $entityType, string $attributeCodes): ?array
     {
         $attributes = explode(',', $attributeCodes);
-        $attributeIds=[];
+        $attributeIds = [];
         foreach ($attributes as $attributeCode) {
-            $attributeId=$this->attribute->getIdByCode("catalog_".$entityType, $attributeCode);
+            $attributeId = $this->attribute->getIdByCode('catalog_' . $entityType, $attributeCode);
             if($attributeId === false) {
                 $error = sprintf('Attribute with code `%s` does not exist', $attributeCode);
                 throw new AttributeDoesNotExistException($error);
             } else {
-                $attributeIds[]=$attributeId;
+                $attributeIds[] = $attributeId;
             }
 
         }
