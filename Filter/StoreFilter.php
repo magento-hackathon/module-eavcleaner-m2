@@ -39,7 +39,7 @@ class StoreFilter
                 try {
                     $storeId = $this->storeRepository->get($storeCode)->getId();
                 } catch (NoSuchEntityException $e) {
-                    $error = $e->getMessage() . '  | store ID: ' . $storeCode;
+                    $error = sprintf('%s | Store with code `%s` does not exist.', $e->getMessage(), $storeCode);
                     throw new StoreDoesNotExistException($error);
                 }
 
