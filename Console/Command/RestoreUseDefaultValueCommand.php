@@ -115,7 +115,7 @@ class RestoreUseDefaultValueCommand extends Command
         }
 
         try {
-            $attributeFilter=$this->attributeFilter->getAttributeFilterIds($entity, $excludeAttributes, $includeAttributes);
+            $attributeFilter=$this->attributeFilter->getAttributeFilter($entity, $excludeAttributes, $includeAttributes);
         } catch (Exception $e) {
             $output->writeln($e->getMessage());
             return Command::FAILURE;

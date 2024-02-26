@@ -46,7 +46,7 @@ class StoreFilter
                 $storeIds[] = $storeId;
             }
 
-            return sprintf('AND store_id in(%s)', implode($storeIds));
+            return sprintf('AND store_id in(%s)', implode(',', $storeIds));
         } else {
             return "";
         }

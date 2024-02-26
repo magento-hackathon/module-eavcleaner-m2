@@ -29,32 +29,24 @@ class AttributeFilter
      *
      * @return array|null
      */
-    public function getAttributeFilterIds(
+    public function getAttributeFilter(
         string          $entityType,
         ?string         $excludeAttributes,
         ?string         $includeAttributes
-    ) : ?string
+    ) : string
     {
-        if ($excludeAttributes === NULL && $includeAttributes === NULL) {
-            return NULL;
-        }
-
         $attributeFilter="";
 
         if ($includeAttributes !== NULL) {
             $includedIds = $this->getAttributeIds($entityType, $includeAttributes);
-            if (empty($includedIds)) {
-                return null;
-            } else {
+            if (!empty($includedIds)) {
                 $attributeFilter .=  sprintf('AND attribute_id IN(%s)', implode(",",$includedIds));
             }
         }
 
         if ($excludeAttributes !== NULL) {
             $excludedIds = $this->getAttributeIds($entityType, $excludeAttributes);
-            if (empty($excludedIds)) {
-                return null;
-            } else {
+            if (!empty($excludedIds)) {
                 $attributeFilter .=  sprintf('AND attribute_id NOT IN(%s)',  implode(",",$excludedIds));
             }
         }
