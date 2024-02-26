@@ -2,8 +2,8 @@
 
 namespace Hackathon\EAVCleaner\Console\Command;
 
-use Hackathon\EAVCleaner\Model\AttributeFilter;
-use Hackathon\EAVCleaner\Model\StoreFilter;
+use Hackathon\EAVCleaner\Filter\AttributeFilter;
+use Hackathon\EAVCleaner\Filter\StoreFilter;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Model\ResourceModel\IteratorFactory;
@@ -88,7 +88,7 @@ class RestoreUseDefaultValueCommand extends Command
                 InputArgument::IS_ARRAY,
                 "Attribute codes from which values should be removed (csv)",
             )
-            ->addOption('always_remove');
+            ->addOption('always_restore');
     }
 
     public function execute(InputInterface $input, OutputInterface $output): int
@@ -99,11 +99,12 @@ class RestoreUseDefaultValueCommand extends Command
         $storeCodes  = $input->getOption('store_codes');
         $excludeAttributes  = $input->getOption('exclude_attributes');
         $includeAttributes  = $input->getOption('include_attributes');
-        $isAlwaysRemove = $input->getOption('always_remove');
+        $isAlwaysRestore = $input->getOption('always_restore');
 
-        $storeIdFilter=$this->storeFilter->getStoreFilter($output, $storeCodes);
-
-        if (NULL === $storeIdFilter) {
+        try {
+            $storeIdFilter=$this->storeFilter->getStoreFilter($storeCodes);
+        } catch (Exception $e) {
+            $output->writeln($e->getMessage());
             return Command::FAILURE;
         }
 
@@ -113,9 +114,10 @@ class RestoreUseDefaultValueCommand extends Command
             return Command::FAILURE;
         }
 
-        $attributeFilter=$this->attributeFilter->getAttributeFilterIds($output, $entity, $excludeAttributes, $includeAttributes);
-
-        if (NULL === $attributeFilter) {
+        try {
+            $attributeFilter=$this->attributeFilter->getAttributeFilterIds($entity, $excludeAttributes, $includeAttributes);
+        } catch (Exception $e) {
+            $output->writeln($e->getMessage());
             return Command::FAILURE;
         }
 
@@ -143,21 +145,22 @@ class RestoreUseDefaultValueCommand extends Command
         foreach ($tables as $table) {
             // Select all non-global values
             $fullTableName = $this->resourceConnection->getTableName('catalog_' . $entity . '_entity_' . $table);
+            $output->writeln(sprintf('<info>Now processing entity `%s` in table `%s`</info>', $entity, $fullTableName ));
 
             // NULL values are handled separately
-            $rawQuery=sprintf(
+            $nullValuesQuery=sprintf(
                 "SELECT * FROM $fullTableName WHERE store_id != 0 %s %s AND value IS NOT NULL",
                 $storeIdFilter,
                 $attributeFilter
             );
-            $output->writeln(sprintf('<info>%s</info>', $rawQuery));
-            $query = $dbRead->query($rawQuery);
+            $output->writeln(sprintf('<info>%s</info>', $nullValuesQuery));
+            $query = $dbRead->query($nullValuesQuery);
 
             $iterator = $this->iteratorFactory->create();
-            $iterator->walk($query, [function (array $result) use ($column, &$counts, $dbRead, $dbWrite, $fullTableName, $isDryRun, $output, $isAlwaysRemove): void {
+            $iterator->walk($query, [function (array $result) use ($column, &$counts, $dbRead, $dbWrite, $fullTableName, $isDryRun, $output, $isAlwaysRestore): void {
                 $row = $result['row'];
 
-                if (!$isAlwaysRemove) {
+                if (!$isAlwaysRestore) {
                     // Select the global value if it's the same as the non-global value
                     $query = $dbRead->query(
                         'SELECT * FROM ' . $fullTableName
@@ -165,7 +168,7 @@ class RestoreUseDefaultValueCommand extends Command
                         [$row['attribute_id'], 0, $row[$column], $row['value']]
                     );
                 } else {
-                    // Select all value, also if it is not the same as the non-global value
+                    // Select all global values.
                     $query = $dbRead->query(
                         'SELECT * FROM ' . $fullTableName
                         . ' WHERE attribute_id = ? AND store_id = ? AND ' . $column . ' = ?',
@@ -186,10 +189,15 @@ class RestoreUseDefaultValueCommand extends Command
                     }
 
                     $output->writeln(
-                        'Deleting value ' . $row['value_id'] . ' "' . $row['value'] . '" in favor of '
-                        . $result['value_id'] . ' "' .  $result ['value'] . '"'
-                        . ' for attribute ' . $row['attribute_id'] . ' in table ' . $fullTableName
-                        . ' for store_id ' . $row ['store_id']
+                        sprintf(
+                            'Deleting value %s (%s) in favor of %s (%s) for attribute %s for store_id %s',
+                            $row['value_id'],
+                            $row['value'],
+                            $result['value_id'] ,
+                            $result ['value'],
+                            $row['attribute_id'],
+                            $row ['store_id']
+                        )
                     );
 
                     if (!isset($counts[$row['attribute_id']])) {
@@ -207,9 +215,12 @@ class RestoreUseDefaultValueCommand extends Command
             if (!$isDryRun && $nullCount > 0) {
                 $output->writeln("Deleting $nullCount NULL value(s) from $fullTableName");
                 // Remove all non-global null values
-                $dbWrite->query(
-                    'DELETE FROM ' . $fullTableName . ' WHERE store_id != 0 AND value IS NULL'
+                $removeNullValuesQuery = sprintf('DELETE FROM ' . $fullTableName . ' WHERE store_id != 0 %s %s AND value IS NULL',
+                    $storeIdFilter,
+                    $attributeFilter
                 );
+                $output->writeln(sprintf('<info>%s</info>', $removeNullValuesQuery));
+                $dbWrite->query($removeNullValuesQuery);
             }
 
             if (count($counts)) {

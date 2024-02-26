@@ -1,10 +1,11 @@
 <?php
 
-namespace Hackathon\EAVCleaner\Model;
+namespace Hackathon\EAVCleaner\Filter;
 
+use Hackathon\EAVCleaner\Filter\Exception\AdminValuesCanNotBeRemovedException;
+use Hackathon\EAVCleaner\Filter\Exception\StoreDoesNotExistException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Api\StoreRepositoryInterface;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Output\OutputInterface;
 
 class StoreFilter
 {
@@ -18,7 +19,12 @@ class StoreFilter
         $this->storeRepository = $storeRepository;
     }
 
-    public function getStoreFilter(OutputInterface $output, ?string $storeCodes) : ?string
+    /**
+     * @param string|null $storeCodes
+     *
+     * @return string
+     */
+    public function getStoreFilter(?string $storeCodes) : string
     {
         if ($storeCodes !== NULL) {
             $storeCodesArray = explode(',', $storeCodes);
@@ -26,16 +32,17 @@ class StoreFilter
             $storeIds=[];
             foreach ($storeCodesArray as $storeCode) {
                 if ($storeCode == 'admin') {
-                    $output->writeln('<error>Admin values can not be removed!</error>');
-                    return NULL;
+                    $error = 'Admin values can not be removed!';
+                    throw new AdminValuesCanNotBeRemovedException($error);
                 }
 
                 try {
                     $storeId = $this->storeRepository->get($storeCode)->getId();
-                } catch (\Exception $e) {
-                    $output->writeln('<error>' . $e->getMessage() . ' : ' . $storeCode . '</error>');
-                    return NULL;
+                } catch (NoSuchEntityException $e) {
+                    $error = $e->getMessage() . '  | store ID: ' . $storeCode;
+                    throw new StoreDoesNotExistException($error);
                 }
+
                 $storeIds[] = $storeId;
             }
 

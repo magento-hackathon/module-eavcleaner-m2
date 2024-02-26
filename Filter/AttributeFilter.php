@@ -1,9 +1,10 @@
 <?php
 
-namespace Hackathon\EAVCleaner\Model;
+namespace Hackathon\EAVCleaner\Filter;
 
+use Hackathon\EAVCleaner\Filter\Exception\AttributeDoesNotExistException;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute;
-use Symfony\Component\Console\Output\OutputInterface;
+use Magento\Eav\Setup\EavSetupFactory;
 
 class AttributeFilter
 {
@@ -22,7 +23,6 @@ class AttributeFilter
     }
 
     /**
-     * @param OutputInterface $output
      * @param string $entityType
      * @param string|null $excludeAttributes
      * @param string|null $includeAttributes
@@ -30,7 +30,6 @@ class AttributeFilter
      * @return array|null
      */
     public function getAttributeFilterIds(
-        OutputInterface $output,
         string          $entityType,
         ?string         $excludeAttributes,
         ?string         $includeAttributes
@@ -43,7 +42,7 @@ class AttributeFilter
         $attributeFilter="";
 
         if ($includeAttributes !== NULL) {
-            $includedIds = $this->getAttributeIds($output, $entityType, $includeAttributes);
+            $includedIds = $this->getAttributeIds($entityType, $includeAttributes);
             if (empty($includedIds)) {
                 return null;
             } else {
@@ -52,7 +51,7 @@ class AttributeFilter
         }
 
         if ($excludeAttributes !== NULL) {
-            $excludedIds = $this->getAttributeIds($output, $entityType, $excludeAttributes);
+            $excludedIds = $this->getAttributeIds($entityType, $excludeAttributes);
             if (empty($excludedIds)) {
                 return null;
             } else {
@@ -63,15 +62,15 @@ class AttributeFilter
         return $attributeFilter;
     }
 
-    private function getAttributeIds($output, $entityType, $attributeCodes): ?array
+    private function getAttributeIds(string $entityType, string $attributeCodes): ?array
     {
         $attributes = explode(',', $attributeCodes);
         $attributeIds=[];
         foreach ($attributes as $attributeCode) {
             $attributeId=$this->attribute->getIdByCode("catalog_".$entityType, $attributeCode);
             if($attributeId === false) {
-                $output->writeln(sprintf('<error>Attribute with code `%s` does not exist</error>', $attributeCode));
-                return null;
+                $error = sprintf('Attribute with code `%s` does not exis', $attributeCode);
+                throw new AttributeDoesNotExistException($error);
             } else {
                 $attributeIds[]=$attributeId;
             }

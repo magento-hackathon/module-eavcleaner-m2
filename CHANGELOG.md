@@ -5,8 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 1.3.0 - 2024-02-23
+### Changed
+- Output for `eav:attributes:restore-use-default-value` only shows the table name once.
 ### Added
-- Option to remove scoped attribute values
+- Option to remove scoped attribute values for `eav:attributes:restore-use-default-value`
 ### Fixed
 - Adobe Commerce B2B is now also detected as Enterprise
 
