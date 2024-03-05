@@ -154,11 +154,13 @@ class RestoreUseDefaultValueCommand extends Command
                 $storeIdFilter,
                 $attributeFilter
             );
+
             $output->writeln(sprintf('<info>%s</info>', $notNullValuesQuery));
             $query = $dbRead->query($notNullValuesQuery);
 
             $iterator = $this->iteratorFactory->create();
-            $iterator->walk($query, [function (array $result) use ($column, &$counts, $dbRead, $dbWrite, $fullTableName, $isDryRun, $output, $isAlwaysRestore): void {
+            $iterator->walk($query, [function (array $result) use ($column, &$counts, $dbRead, $dbWrite, $fullTableName,
+                $isDryRun, $output, $isAlwaysRestore, $storeIdFilter): void {
                 $row = $result['row'];
 
                 if (!$isAlwaysRestore) {
@@ -169,12 +171,15 @@ class RestoreUseDefaultValueCommand extends Command
                         [$row['attribute_id'], 0, $row[$column], $row['value']]
                     );
                 } else {
-                    // Select all global values.
-                    $query = $dbRead->query(
-                        'SELECT * FROM ' . $fullTableName
-                        . ' WHERE attribute_id = ? AND store_id = ? AND ' . $column . ' = ?',
-                        [$row['attribute_id'], 0, $row[$column]]
+                    // Select all scoped values
+                    $selectScopedValuesQuery = sprintf(
+                        'SELECT * FROM %s WHERE attribute_id = ? %s AND %s = ?',
+                        $fullTableName,
+                        $storeIdFilter,
+                        $column
                     );
+
+                    $query = $dbRead->query($selectScopedValuesQuery, [$row['attribute_id'], $row[$column]]);
                 }
 
                 $iterator = $this->iteratorFactory->create();
@@ -209,17 +214,15 @@ class RestoreUseDefaultValueCommand extends Command
                 }]);
             }]);
 
+            $nullCountWhereClause = sprintf('WHERE store_id != 0 %s %s AND value IS NULL', $storeIdFilter, $attributeFilter);
             $nullCount = (int) $dbRead->fetchOne(
-                'SELECT COUNT(*) FROM ' . $fullTableName . ' WHERE store_id != 0 AND value IS NULL'
+                'SELECT COUNT(*) FROM ' . $fullTableName . ' ' . $nullCountWhereClause
             );
 
             if (!$isDryRun && $nullCount > 0) {
                 $output->writeln("Deleting $nullCount NULL value(s) from $fullTableName");
                 // Remove all non-global null values
-                $removeNullValuesQuery = sprintf('DELETE FROM ' . $fullTableName . ' WHERE store_id != 0 %s %s AND value IS NULL',
-                    $storeIdFilter,
-                    $attributeFilter
-                );
+                $removeNullValuesQuery = 'DELETE FROM ' . $fullTableName . ' ' . $nullCountWhereClause;
                 $output->writeln(sprintf('<info>%s</info>', $removeNullValuesQuery));
                 $dbWrite->query($removeNullValuesQuery);
             }
