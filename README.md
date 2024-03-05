@@ -20,6 +20,20 @@ Use `--dry-run` to check result without modifying data.
 ## Force
 Use `--force` to skip the confirmation prompt before modifying data.
 
+## Additional options for `eav:attributes:restore-use-default-value`
+
+### Always remove
+Use `--always_restore` to remove all values, even if the scoped value is not equal to the base value.
+
+### Store codes
+Use `--store_codes=your_store_code` to only remove values for this store.
+
+### Include attributes
+Use `--include_attributes=some_attribute,some_other_attribute` to only delete values for these attributes.
+
+### Exclude attributes
+Use `--exclude_attributes=some_attribute,some_other_attribute` to preserve values for these attributes.
+
 ## Installation
 Installation with composer:
 
@@ -31,6 +45,7 @@ composer require magento-hackathon/module-eavcleaner-m2
 - Nikita Zhavoronkova
 - Anastasiia Sukhorukova
 - Peter Jaap Blaakmeer
+- Rutger Rademaker
 
 ### Special thanks to
 - Benno Lippert
