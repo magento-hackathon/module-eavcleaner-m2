@@ -17,11 +17,8 @@ class RemoveUnusedMediaCommand extends Command
 {
     private const OPTION_DRY_RUN = 'dry-run';
     private const OPTION_INCLUDING_CACHE = 'including-cache';
-
     private const OPTION_ONLY_CACHE = 'only-cache';
-
     private const OPTION_INCLUDING_RELATION_ENTITY = 'including-relation';
-
     private const OPTION_FORCE = 'force';
     private const COMMAND_NAME_EAV_MEDIA_REMOVE_UNUSED = 'eav:media:remove-unused';
 
@@ -79,7 +76,6 @@ class RemoveUnusedMediaCommand extends Command
         }
 
         $imageDir = $this->getImageDir();
-
         $connection = $this->resourceConnection->getConnection('core_read');
         $mediaGalleryTable = $this->resourceConnection->getTableName('catalog_product_entity_media_gallery');
 
@@ -87,13 +83,11 @@ class RemoveUnusedMediaCommand extends Command
 
         $imagesToKeep = $connection->fetchCol('SELECT value FROM ' . $mediaGalleryTable);
 
-        // begin new code
         if ($deleteNotInRelation) {
             $mediaGalleryToEntityTable = $this->resourceConnection->getTableName('catalog_product_entity_media_gallery_value_to_entity');
             $sql='SELECT value FROM ' . $mediaGalleryTable. ' where value_id IN (SELECT value_id from '.$mediaGalleryToEntityTable.')';
             $imagesToKeep = $connection->fetchCol($sql);
         }
-        // end
 
         foreach (new RecursiveIteratorIterator($directoryIterator) as $file) {
             // Directory guard
@@ -181,28 +175,24 @@ class RemoveUnusedMediaCommand extends Command
     {
         $this->setName(self::COMMAND_NAME_EAV_MEDIA_REMOVE_UNUSED);
         $this->setDescription('Remove unused product images');
-
         $this->addOption(
             self::OPTION_INCLUDING_CACHE,
             'c',
             null,
             'Also clear the ./cache/* entries for the corresponding images'
         );
-
         $this->addOption(
             self::OPTION_ONLY_CACHE,
             'k',
             null,
             'Clear only the ./cache/* entries for the corresponding images nad not the corresponding images'
         );
-
         $this->addOption(
             self::OPTION_INCLUDING_RELATION_ENTITY,
             'r',
             null,
             'Also clear the media not in relation table "catalog_product_entity_media_gallery_value_to_entity"'
         );
-
         $this->addOption(
             self::OPTION_DRY_RUN,
             'd',
