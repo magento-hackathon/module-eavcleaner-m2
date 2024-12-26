@@ -185,7 +185,7 @@ class RemoveUnusedMediaCommand extends Command
             self::OPTION_ONLY_CACHE,
             'k',
             null,
-            'Clear only the ./cache/* entries for the corresponding images nad not the corresponding images'
+            'Clear only the ./cache/* entries for the corresponding images, but not the corresponding images'
         );
         $this->addOption(
             self::OPTION_INCLUDING_RELATION_ENTITY,
