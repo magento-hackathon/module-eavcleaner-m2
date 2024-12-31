@@ -17,6 +17,8 @@ class RemoveUnusedMediaCommand extends Command
 {
     private const OPTION_DRY_RUN = 'dry-run';
     private const OPTION_INCLUDING_CACHE = 'including-cache';
+    private const OPTION_ONLY_CACHE = 'only-cache';
+    private const OPTION_INCLUDING_RELATION_ENTITY = 'including-relation';
     private const OPTION_FORCE = 'force';
     private const COMMAND_NAME_EAV_MEDIA_REMOVE_UNUSED = 'eav:media:remove-unused';
 
@@ -44,6 +46,11 @@ class RemoveUnusedMediaCommand extends Command
         $isForce = $input->getOption(self::OPTION_FORCE);
         $isDryRun = $input->getOption(self::OPTION_DRY_RUN);
         $deleteCacheAsWell = $input->getOption(self::OPTION_INCLUDING_CACHE);
+        $deleteOnlyCache = $input->getOption(self::OPTION_ONLY_CACHE);
+        if ($deleteOnlyCache) {
+            $deleteCacheAsWell=true;
+        }
+        $deleteNotInRelation = $input->getOption(self::OPTION_INCLUDING_RELATION_ENTITY);
 
         if (!$isDryRun && !$isForce) {
             if (!$input->isInteractive()) {
@@ -76,6 +83,12 @@ class RemoveUnusedMediaCommand extends Command
 
         $imagesToKeep = $connection->fetchCol('SELECT value FROM ' . $mediaGalleryTable);
 
+        if ($deleteNotInRelation) {
+            $mediaGalleryToEntityTable = $this->resourceConnection->getTableName('catalog_product_entity_media_gallery_value_to_entity');
+            $sql='SELECT value FROM ' . $mediaGalleryTable. ' where value_id IN (SELECT value_id from '.$mediaGalleryToEntityTable.')';
+            $imagesToKeep = $connection->fetchCol($sql);
+        }
+
         foreach (new RecursiveIteratorIterator($directoryIterator) as $file) {
             // Directory guard
             if (is_dir($file)) {
@@ -84,6 +97,11 @@ class RemoveUnusedMediaCommand extends Command
 
             // Cached guard
             if ($this->isInCachePath($file) && !$deleteCacheAsWell) {
+                continue;
+            }
+
+            // Original image guard if option --only-cache
+            if (!$this->isInCachePath($file) && $deleteOnlyCache) {
                 continue;
             }
 
@@ -157,12 +175,23 @@ class RemoveUnusedMediaCommand extends Command
     {
         $this->setName(self::COMMAND_NAME_EAV_MEDIA_REMOVE_UNUSED);
         $this->setDescription('Remove unused product images');
-
         $this->addOption(
             self::OPTION_INCLUDING_CACHE,
             'c',
             null,
             'Also clear the ./cache/* entries for the corresponding images'
+        );
+        $this->addOption(
+            self::OPTION_ONLY_CACHE,
+            'k',
+            null,
+            'Clear only the ./cache/* entries for the corresponding images, but not the corresponding images'
+        );
+        $this->addOption(
+            self::OPTION_INCLUDING_RELATION_ENTITY,
+            'r',
+            null,
+            'Also clear the media not in relation table "catalog_product_entity_media_gallery_value_to_entity"'
         );
         $this->addOption(
             self::OPTION_DRY_RUN,
