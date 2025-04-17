@@ -28,6 +28,14 @@ class RemoveUnusedAttributesCommand extends Command
      */
     private $searchCriteriaBuilderFactory;
 
+    /**
+     * Constructor
+     *
+     * @param ResourceConnection $resourceConnection
+     * @param AttributeRepositoryInterface $attributeRepository
+     * @param SearchCriteriaBuilderFactory $searchCriteriaBuilderFactory
+     * @param string|null $name
+     */
     public function __construct(
         ResourceConnection $resourceConnection,
         AttributeRepositoryInterface $attributeRepository,
@@ -35,11 +43,14 @@ class RemoveUnusedAttributesCommand extends Command
         string $name = null
     ) {
         parent::__construct($name);
-        $this->resourceConnection           = $resourceConnection;
-        $this->attributeRepository          = $attributeRepository;
+        $this->resourceConnection = $resourceConnection;
+        $this->attributeRepository = $attributeRepository;
         $this->searchCriteriaBuilderFactory = $searchCriteriaBuilderFactory;
     }
 
+    /**
+     * @inheritdoc
+     */
     protected function configure()
     {
         $this
@@ -49,6 +60,9 @@ class RemoveUnusedAttributesCommand extends Command
             ->addOption('force');
     }
 
+    /**
+     * @inheritdoc
+     */
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $isDryRun = $input->getOption('dry-run');
@@ -56,60 +70,76 @@ class RemoveUnusedAttributesCommand extends Command
 
         if (!$isDryRun && !$isForce) {
             if (!$input->isInteractive()) {
-                $output->writeln('ERROR: neither --dry-run nor --force options were supplied, and we are not running interactively.');
+                $output->writeln(
+                    '<error>'
+                    //phpcs:ignore Generic.Files.LineLength.TooLong
+                    . 'ERROR: neither --dry-run nor --force options were supplied, and we are not running interactively.'
+                    . '</error>'
+                );
 
-                return 1; // error.
+                return Command::FAILURE;
             }
 
-            $output->writeln('WARNING: this is not a dry run. If you want to do a dry-run, add --dry-run.');
+            $output->writeln(
+                '<info>WARNING: this is not a dry run. If you want to do a dry-run, add --dry-run.</info>'
+            );
             $question = new ConfirmationQuestion('Are you sure you want to continue? [No] ', false);
 
             if (!$this->getHelper('question')->ask($input, $output, $question)) {
-                return 1; // error.
+                return Command::FAILURE;
             }
         }
 
-        $db                      = $this->resourceConnection->getConnection('core_write');
-        $deleted                 = 0;
-        $searchCriteria          = $this->searchCriteriaBuilderFactory->create()
+        $db = $this->resourceConnection->getConnection('core_write');
+
+        $searchCriteria = $this->searchCriteriaBuilderFactory->create()
             ->addFilter('is_user_defined', 1)
             ->addFilter('backend_type', 'static', 'neq')
             ->create();
-        $attributes              = $this->attributeRepository
+        $attributes = $this->attributeRepository
             ->getList(ProductAttributeInterface::ENTITY_TYPE_CODE, $searchCriteria)
             ->getItems();
-        $eavAttributeTable       = $this->resourceConnection->getTableName('eav_attribute');
+        $eavAttributeTable = $this->resourceConnection->getTableName('eav_attribute');
         $eavEntityAttributeTable = $this->resourceConnection->getTableName('eav_entity_attribute');
 
+        $deleted = 0;
         foreach ($attributes as $attribute) {
-            $table = $this->resourceConnection->getTableName('catalog_product_entity_' . $attribute->getBackendType());
+            $table = $this->resourceConnection
+                ->getTableName(sprintf('catalog_product_entity_%s', $attribute->getBackendType()));
             /* Look for attributes that have no values set in products */
-            $attributeValues = (int)$db->fetchOne('SELECT COUNT(*) FROM ' . $table . ' WHERE attribute_id = ?',
-                [$attribute->getAttributeId()]);
+            $select = $db->select()
+                ->from($table, ['COUNT(*)'])
+                ->where('attribute_id = ?', $attribute->getAttributeId());
+            $attributeValues = (int)$db->fetchOne($select);
 
             if ($attributeValues === 0) {
-                $output->writeln($attribute->getAttributeCode() . ' has ' . $attributeValues
-                    . ' values; deleting attribute');
+                $output->writeln(
+                    sprintf('%s has %d values; deleting attribute', $attribute->getAttributeCode(), $attributeValues)
+                );
 
                 if (!$isDryRun) {
-                    $db->query('DELETE FROM ' . $eavAttributeTable . ' WHERE attribute_code = ?',
-                        $attribute->getAttributeCode());
+                    $db->delete($eavAttributeTable, ['attribute_code = ?' => $attribute->getAttributeCode()]);
                 }
 
                 $deleted++;
             } else {
                 /* Look for attributes that are not assigned to attribute sets */
-                $attributeGroups = (int)$db->fetchOne('SELECT COUNT(*) FROM ' . $eavEntityAttributeTable
-                    . ' WHERE attribute_id = ?', [$attribute->getAttributeId()]);
+                $select = $db->select()
+                    ->from($eavEntityAttributeTable, ['COUNT(*)'])
+                    ->where('attribute_id = ?', $attribute->getAttributeId());
+                $attributeGroups = (int)$db->fetchOne($select);
 
                 if ($attributeGroups === 0) {
-                    $output->writeln($attribute->getAttributeCode()
-                        . ' is not assigned to any attribute set; deleting attribute and its ' . $attributeValues
-                        . ' orphaned value(s)');
+                    $output->writeln(
+                        sprintf(
+                            '%s is not assigned to any attribute set; deleting attribute and its %d orphaned value(s)',
+                            $attribute->getAttributeCode(),
+                            $attributeValues
+                        )
+                    );
 
                     if (!$isDryRun) {
-                        $db->query('DELETE FROM ' . $eavAttributeTable . ' WHERE attribute_code = ?',
-                            $attribute->getAttributeCode());
+                        $db->delete($eavAttributeTable, ['attribute_code = ?' => $attribute->getAttributeCode()]);
                     }
 
                     $deleted++;
@@ -117,8 +147,8 @@ class RemoveUnusedAttributesCommand extends Command
             }
         }
 
-        $output->writeln('Deleted ' . $deleted . ' attributes.');
+        $output->writeln(sprintf('Deleted %d attributes.', $deleted));
 
-        return 0; // success.
+        return Command::SUCCESS;
     }
 }
