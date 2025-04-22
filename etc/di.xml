@@ -11,4 +11,9 @@
             </argument>
         </arguments>
     </type>
+    <type name="Hackathon\EAVCleaner\Console\Command\RemoveUnusedMediaCommand">
+        <arguments>
+            <argument name="driver" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
 </config>
