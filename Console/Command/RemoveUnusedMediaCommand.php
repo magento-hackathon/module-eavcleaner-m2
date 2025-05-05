@@ -51,7 +51,7 @@ class RemoveUnusedMediaCommand extends Command
         Filesystem $filesystem,
         ResourceConnection $resourceConnection,
         DriverInterface $driver,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
         $this->resourceConnection = $resourceConnection;

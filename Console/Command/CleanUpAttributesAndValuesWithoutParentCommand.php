@@ -35,7 +35,7 @@ class CleanUpAttributesAndValuesWithoutParentCommand extends Command
     public function __construct(
         ResourceConnection $resourceConnection,
         EavEntityTypeCollectionFactory $eavEntityTypeCollectionFactory,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
         $this->resourceConnection = $resourceConnection;
