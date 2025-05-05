@@ -41,7 +41,7 @@ class RestoreUseDefaultValueCommand extends Command
         IteratorFactory $iteratorFactory,
         ProductMetaDataInterface $productMetaData,
         ResourceConnection $resourceConnection,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
 

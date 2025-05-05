@@ -45,7 +45,7 @@ class RestoreUseDefaultConfigValueCommand extends Command
         Reader $configReader,
         IteratorFactory $iteratorFactory,
         ResourceConnection $resourceConnection,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
 
