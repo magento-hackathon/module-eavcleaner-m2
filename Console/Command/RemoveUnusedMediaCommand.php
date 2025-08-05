@@ -190,7 +190,7 @@ class RemoveUnusedMediaCommand extends Command
             }
 
             $filePathWithoutCacheDir = preg_replace('#/cache_*/[a-z0-9]+(/[a-z0-9]/[a-z0-9]/.+?)#i', '$1', $filePath);
-            if (key_exists($filePathWithoutCacheDir, $imagesToKeep)) {
+            if (array_key_exists($filePathWithoutCacheDir, $imagesToKeep)) {
                 continue;
             }
 
@@ -199,7 +199,7 @@ class RemoveUnusedMediaCommand extends Command
                 continue;
             }
 
-            if (key_exists($filePath, $imagesToKeep)) {
+            if (array_key_exists($filePath, $imagesToKeep)) {
                 continue;
             }
 
