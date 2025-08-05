@@ -165,6 +165,8 @@ class RemoveUnusedMediaCommand extends Command
             $imagesToKeep = $connection->fetchCol($select);
         }
 
+        $imagesToKeep = array_flip($imagesToKeep);
+
         foreach (new RecursiveIteratorIterator($directoryIterator) as $file) {
             // Directory guard
             if ($this->driver->isDirectory($file)) {
@@ -188,7 +190,7 @@ class RemoveUnusedMediaCommand extends Command
             }
 
             $filePathWithoutCacheDir = preg_replace('#/cache_*/[a-z0-9]+(/[a-z0-9]/[a-z0-9]/.+?)#i', '$1', $filePath);
-            if (in_array($filePathWithoutCacheDir, $imagesToKeep, true)) {
+            if (array_key_exists($filePathWithoutCacheDir, $imagesToKeep)) {
                 continue;
             }
 
@@ -197,7 +199,7 @@ class RemoveUnusedMediaCommand extends Command
                 continue;
             }
 
-            if (in_array($filePath, $imagesToKeep, true)) {
+            if (array_key_exists($filePath, $imagesToKeep)) {
                 continue;
             }
 
