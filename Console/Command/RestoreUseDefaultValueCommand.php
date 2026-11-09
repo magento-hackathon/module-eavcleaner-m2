@@ -183,7 +183,7 @@ class RestoreUseDefaultValueCommand extends Command
                 }
             ]);
 
-            $nullCountSelect = (int)$dbRead->select()
+            $nullCountSelect = $dbRead->select()
                 ->from($fullTableName, ['count' => new \Zend_Db_Expr('COUNT(*)')])
                 ->where('store_id != ? AND value IS NULL', 0);
             $nullCount = (int)$dbRead->fetchOne($nullCountSelect);
