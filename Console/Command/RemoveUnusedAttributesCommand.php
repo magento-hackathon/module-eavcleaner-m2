@@ -6,6 +6,7 @@ use Magento\Catalog\Api\Data\ProductAttributeInterface;
 use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilderFactory;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -101,9 +102,11 @@ class RemoveUnusedAttributesCommand extends Command
             ->getItems();
         $eavAttributeTable = $this->resourceConnection->getTableName('eav_attribute');
         $eavEntityAttributeTable = $this->resourceConnection->getTableName('eav_entity_attribute');
+        $superAttributeIds = $this->getConfigurableSuperAttributeIds($db);
 
         $deleted = 0;
         foreach ($attributes as $attribute) {
+            $isSuperAttribute = in_array((int)$attribute->getAttributeId(), $superAttributeIds, true);
             $table = $this->resourceConnection
                 ->getTableName(sprintf('catalog_product_entity_%s', $attribute->getBackendType()));
             /* Look for attributes that have no values set in products */
@@ -113,12 +116,20 @@ class RemoveUnusedAttributesCommand extends Command
             $attributeValues = (int)$db->fetchOne($select);
 
             if ($attributeValues === 0) {
+                if ($isSuperAttribute) {
+                    $output->writeln(
+                        sprintf('%s is used by configurable products; skipping', $attribute->getAttributeCode())
+                    );
+
+                    continue;
+                }
+
                 $output->writeln(
                     sprintf('%s has %d values; deleting attribute', $attribute->getAttributeCode(), $attributeValues)
                 );
 
                 if (!$isDryRun) {
-                    $db->delete($eavAttributeTable, ['attribute_code = ?' => $attribute->getAttributeCode()]);
+                    $db->delete($eavAttributeTable, ['attribute_id = ?' => $attribute->getAttributeId()]);
                 }
 
                 $deleted++;
@@ -130,6 +141,14 @@ class RemoveUnusedAttributesCommand extends Command
                 $attributeGroups = (int)$db->fetchOne($select);
 
                 if ($attributeGroups === 0) {
+                    if ($isSuperAttribute) {
+                        $output->writeln(
+                            sprintf('%s is used by configurable products; skipping', $attribute->getAttributeCode())
+                        );
+
+                        continue;
+                    }
+
                     $output->writeln(
                         sprintf(
                             '%s is not assigned to any attribute set; deleting attribute and its %d orphaned value(s)',
@@ -139,7 +158,7 @@ class RemoveUnusedAttributesCommand extends Command
                     );
 
                     if (!$isDryRun) {
-                        $db->delete($eavAttributeTable, ['attribute_code = ?' => $attribute->getAttributeCode()]);
+                        $db->delete($eavAttributeTable, ['attribute_id = ?' => $attribute->getAttributeId()]);
                     }
 
                     $deleted++;
@@ -150,5 +169,26 @@ class RemoveUnusedAttributesCommand extends Command
         $output->writeln(sprintf('Deleted %d attributes.', $deleted));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Get IDs of attributes that configurable products use to build their variations
+     *
+     * @param AdapterInterface $db
+     * @return int[]
+     */
+    private function getConfigurableSuperAttributeIds(AdapterInterface $db): array
+    {
+        $table = $this->resourceConnection->getTableName('catalog_product_super_attribute');
+
+        if (!$db->isTableExists($table)) {
+            return [];
+        }
+
+        $select = $db->select()
+            ->distinct()
+            ->from($table, ['attribute_id']);
+
+        return array_map('intval', $db->fetchCol($select));
     }
 }
